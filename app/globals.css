@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/*
+ * Palette pulled from the product photos: cream paper, walnut desk, and the
+ * peach / sky / blush wash printed on the To-Be List. The store is light-only
+ * on purpose — product photos are shot warm and read best on cream.
+ */
+@theme {
+  --color-cream: #fbf6ef;
+  --color-paper: #fffdf9;
+  --color-sand: #efe6da;
+  --color-line: #e4d8c8;
+  --color-ink: #2b211c;
+  --color-ink-soft: #6f6258;
+  --color-walnut: #5a3a28;
+  --color-peach: #f5b48c;
+  --color-sky: #a9c7e6;
+  --color-blush: #f2b4c3;
+  --color-clay: #c2653f;
+  --color-clay-dark: #a4502f;
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+
+  --shadow-card: 0 1px 2px rgb(43 33 28 / 0.04), 0 12px 32px -12px rgb(43 33 28 / 0.18);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-peach);
+  color: var(--color-ink);
+}
+
+/* The pastel wash from the To-Be List, reused as a soft blurred backdrop. */
+.wash {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
