@@ -4,7 +4,11 @@ Personal store built with Next.js 16 (App Router) + MongoDB.
 
 - `/` home, `/products` catalogue (products come from MongoDB)
 - Email/password sign-in and sign-up, plus Google sign-in/sign-up
-- Admins (emails in `ADMIN_EMAILS`) can add, edit and delete products on `/products`; photos are resized in the browser and stored in MongoDB
+- Admins can add, edit and delete products on `/products`; photos are resized in the browser and hosted on ImgBB
+
+## Making someone an admin
+
+Everyone signs up as a normal user. To make an account an admin, change its `role` from `"user"` to `"admin"` in the `users` collection of the `priyanshi-store` database. It takes effect on their next page load — no need to sign out.
 
 ## Setup
 

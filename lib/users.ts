@@ -1,4 +1,4 @@
-import { type Collection, type WithId } from 'mongodb'
+import { ObjectId, type Collection, type WithId } from 'mongodb'
 import { getDb } from '@/lib/mongodb'
 import type { AuthPayload, Role } from '@/lib/auth'
 
@@ -49,24 +49,6 @@ export function validatePassword(password: unknown): string | null {
   return null
 }
 
-/** Emails listed in ADMIN_EMAILS are made admins when they sign in. */
-function isAdminEmail(email: string): boolean {
-  return (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map(normaliseEmail)
-    .filter(Boolean)
-    .includes(normaliseEmail(email))
-}
-
-/**
- * The role an account should carry after signing in. ADMIN_EMAILS only ever
- * promotes — an admin granted directly in the database is not demoted because
- * they are missing from the list.
- */
-function resolveRole(email: string, current?: Role): Role {
-  return isAdminEmail(email) ? 'admin' : current ?? 'user'
-}
-
 export async function findUserByEmail(email: string): Promise<WithId<UserDoc> | null> {
   const users = await usersCollection()
   return users.findOne({ email: normaliseEmail(email) })
@@ -82,13 +64,25 @@ export function toAuthPayload(user: WithId<UserDoc>): AuthPayload {
   }
 }
 
-/** Records the sign-in and applies any ADMIN_EMAILS promotion. Returns the fresh document. */
+/** Records the sign-in time. */
 export async function recordLogin(user: WithId<UserDoc>): Promise<WithId<UserDoc>> {
   const users = await usersCollection()
-  const role = resolveRole(user.email, user.role)
   const now = new Date()
-  await users.updateOne({ _id: user._id }, { $set: { role, lastLoginAt: now } })
-  return { ...user, role, lastLoginAt: now }
+  await users.updateOne({ _id: user._id }, { $set: { lastLoginAt: now } })
+  return { ...user, lastLoginAt: now }
+}
+
+/**
+ * The account's current role, read from the database rather than the session
+ * token, so promoting or demoting someone in MongoDB applies on their next
+ * request. Returns null when the account no longer exists.
+ */
+export async function findRole(id: string): Promise<Role | null> {
+  if (!ObjectId.isValid(id)) return null
+  const users = await usersCollection()
+  const doc = await users.findOne({ _id: new ObjectId(id) }, { projection: { role: 1 } })
+  if (!doc) return null
+  return doc.role === 'admin' ? 'admin' : 'user'
 }
 
 export async function createPasswordUser(input: {
@@ -103,7 +97,7 @@ export async function createPasswordUser(input: {
     email,
     name: input.name.trim() || email.split('@')[0],
     password: input.passwordHash,
-    role: resolveRole(email),
+    role: 'user',
     providers: ['password'],
     createdAt: now,
     updatedAt: now,
@@ -137,7 +131,6 @@ export async function upsertGoogleUser(profile: {
           googleId: profile.googleId,
           avatar: profile.picture || existing.avatar,
           name: existing.name || profile.name || email.split('@')[0],
-          role: resolveRole(email, existing.role),
           updatedAt: now,
           lastLoginAt: now,
         },
@@ -150,7 +143,7 @@ export async function upsertGoogleUser(profile: {
   const doc: UserDoc = {
     email,
     name: profile.name || email.split('@')[0],
-    role: resolveRole(email),
+    role: 'user',
     providers: ['google'],
     googleId: profile.googleId,
     avatar: profile.picture,

@@ -18,11 +18,10 @@ export function isGoogleConfigured(): boolean {
 /**
  * The callback URL, which must also be listed under "Authorized redirect URIs"
  * in Google Cloud Console. Derived from the request so localhost and production
- * both work; NEXT_PUBLIC_SITE_URL overrides it behind a proxy.
+ * both work.
  */
 export function redirectUri(request: NextRequest): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || request.nextUrl.origin
-  return `${base}/api/auth/google/callback`
+  return `${request.nextUrl.origin}/api/auth/google/callback`
 }
 
 export function buildConsentUrl(request: NextRequest, state: string): string {

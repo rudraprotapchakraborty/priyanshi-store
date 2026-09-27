@@ -1,13 +1,5 @@
 import type { ReactNode } from 'react'
-import { MessageCircle } from 'lucide-react'
 import { formatPrice, type Product } from '@/lib/product-types'
-
-const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, '') || ''
-
-function orderLink(product: Product): string {
-  const text = `Hi! I'd like to order the ${product.name} (${formatPrice(product.price)}).`
-  return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`
-}
 
 export function ProductCard({
   product,
@@ -48,17 +40,6 @@ export function ProductCard({
         {product.tagline && <p className="text-sm font-medium text-clay">{product.tagline}</p>}
         {showDescription && product.description && (
           <p className="text-sm leading-relaxed text-ink-soft">{product.description}</p>
-        )}
-
-        {WHATSAPP && product.inStock && (
-          <a
-            href={orderLink(product)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-auto inline-flex items-center justify-center gap-2 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-cream transition-colors hover:bg-walnut"
-          >
-            <MessageCircle className="h-4 w-4" /> Order on WhatsApp
-          </a>
         )}
       </div>
     </article>

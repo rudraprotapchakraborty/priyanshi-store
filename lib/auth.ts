@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
+import { findRole } from '@/lib/users'
 
 export const COOKIE_NAME = 'ps-auth-token'
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
@@ -45,20 +46,38 @@ export function getAuth(request: NextRequest): AuthPayload | null {
   return token ? verifyToken(token) : null
 }
 
-/** Session from a server component. */
+/**
+ * Session from a server component, with the role refreshed from the database so
+ * a role changed in MongoDB shows up without signing out and back in.
+ */
 export async function getSession(): Promise<AuthPayload | null> {
   const token = (await cookies()).get(COOKIE_NAME)?.value
-  return token ? verifyToken(token) : null
+  const payload = token ? verifyToken(token) : null
+  if (!payload) return null
+  try {
+    const role = await findRole(payload.sub)
+    return role ? { ...payload, role } : null
+  } catch (err) {
+    // Only decides what the page shows; admin API routes check the database on
+    // their own, so falling back to the token here grants nothing.
+    console.error('Could not refresh session role:', err)
+    return payload
+  }
 }
 
 /**
  * Guard for admin-only API routes. Returns a response to send back when the
  * caller is not an admin, or `null` when the request may proceed.
+ *
+ * The role comes from the database, not the token, so an account demoted in
+ * MongoDB loses access immediately rather than when its session expires.
  */
-export function requireAdmin(request: NextRequest): NextResponse | null {
+export async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
   const auth = getAuth(request)
   if (!auth) return NextResponse.json({ error: 'Please sign in first.' }, { status: 401 })
-  if (auth.role !== 'admin') return NextResponse.json({ error: 'Admins only.' }, { status: 403 })
+  if ((await findRole(auth.sub)) !== 'admin') {
+    return NextResponse.json({ error: 'Admins only.' }, { status: 403 })
+  }
   return null
 }
 
